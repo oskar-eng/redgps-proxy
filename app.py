@@ -10,10 +10,14 @@ PASSWORD = "123456789"
 
 @app.route('/activos')
 def obtener_activos():
-    token_response = requests.post(f"{API_URL}/gettoken", data={
-        "apikey": API_KEY,
-        "username": USERNAME,
-        "password": PASSWORD
+   token_response = requests.post(
+    f"{API_URL}/gettoken",
+    files={
+        "apikey": (None, API_KEY),
+        "username": (None, USERNAME),
+        "password": (None, PASSWORD)
+    }
+)
     })
 
     if token_response.status_code != 200:
