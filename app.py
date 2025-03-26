@@ -19,12 +19,11 @@ def obtener_token_directo():
             "password": (None, PASSWORD)
         }
     )
-
     return jsonify(token_response.json())
 
 @app.route('/activos')
-def obtener_activos():
-    # 1. Obtener token directamente desde la ruta completa
+def obtener_datos_activos():
+    # 1. Obtener token
     token_response = requests.post(
         "https://api.service24gps.com/api/v1/gettoken",
         files={
@@ -44,15 +43,16 @@ def obtener_activos():
 
     token = token_data.get("data")
 
-    # 2. Consultar unidades usando el token
-    headers = {
-        "Authorization": f"Bearer {token}"
-    }
-
-    data_response = requests.get("https://api.service24gps.com/api/v1/getunits", headers=headers)
+    # 2. Obtener data de unidades con el token (vía form-data)
+    data_response = requests.post(
+        "https://api.service24gps.com/api/v1/getdata",
+        files={
+            "token": (None, token)
+        }
+    )
 
     if data_response.status_code != 200:
-        return jsonify({"error": "Error al obtener unidades", "status": data_response.status_code})
+        return jsonify({"error": "Error al obtener datos de unidades", "status": data_response.status_code})
 
     unidades = data_response.json().get("data", [])
 
