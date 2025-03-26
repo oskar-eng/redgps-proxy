@@ -23,7 +23,7 @@ def obtener_token_directo():
 
 @app.route('/activos')
 def obtener_datos_activos():
-    # 1. Obtener token
+    # === PASO 1: Obtener token ===
     token_response = requests.post(
         "https://api.service24gps.com/api/v1/gettoken",
         files={
@@ -35,15 +35,23 @@ def obtener_datos_activos():
     )
 
     if token_response.status_code != 200:
-        return jsonify({"error": "Error al obtener token", "status": token_response.status_code})
+        return jsonify({
+            "error": "Error HTTP al obtener token",
+            "status": token_response.status_code,
+            "respuesta": token_response.text
+        })
 
     token_data = token_response.json()
+
     if token_data.get("status") != 200:
-        return jsonify({"error": "Respuesta sin token válido", "detalles": token_data})
+        return jsonify({
+            "error": "Error en respuesta de token",
+            "respuesta": token_data
+        })
 
     token = token_data.get("data")
 
-    # 2. Obtener data de unidades con el token (vía form-data)
+    # === PASO 2: Llamar al endpoint GETDATA ===
     data_response = requests.post(
         "https://api.service24gps.com/api/v1/getdata",
         files={
@@ -51,12 +59,23 @@ def obtener_datos_activos():
         }
     )
 
-    if data_response.status_code != 200:
-        return jsonify({"error": "Error al obtener datos de unidades", "status": data_response.status_code})
+    # Mostrar TODO lo que devuelve RedGPS
+    try:
+        json_data = data_response.json()
+    except Exception:
+        json_data = {"error": "Respuesta no es JSON", "raw": data_response.text}
 
-    unidades = data_response.json().get("data", [])
+    if data_response.status_code != 200 or json_data.get("status") != 200:
+        return jsonify({
+            "error": "Error al obtener datos de unidades",
+            "status": data_response.status_code,
+            "respuesta": json_data
+        })
 
+    # === PASO 3: Procesar unidades ===
+    unidades = json_data.get("data", [])
     resultado = []
+
     for unidad in unidades:
         resultado.append({
             "unidad": unidad.get("name"),
