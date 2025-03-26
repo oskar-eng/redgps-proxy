@@ -3,80 +3,36 @@ import requests
 
 app = Flask(__name__)
 
-# === CREDENCIALES DE REDGPS ===
-API_KEY = "c95d7f74eccb5702a620011f128f750e"
-USERNAME = "Olaurente"
-PASSWORD = "123456789"
-
-@app.route('/token')
-def obtener_token_directo():
-    token_response = requests.post(
-        "https://api.service24gps.com/api/v1/gettoken",
-        files={
-            "apikey": (None, API_KEY),
-            "token": (None, ""),
-            "username": (None, USERNAME),
-            "password": (None, PASSWORD)
-        }
-    )
-    return jsonify(token_response.json())
+# Token manual generado desde Postman (válido por 6 horas)
+TOKEN_MANUAL = "8JKsNtW/HT87wxaSZLIsfyEFURGYUg4BOoo6swqPm9XHCY7nKtP+34bzOO8pvK7Q"
 
 @app.route('/activos')
-def obtener_datos_activos():
-    # === PASO 1: Obtener token ===
-    token_response = requests.post(
-        "https://api.service24gps.com/api/v1/gettoken",
-        files={
-            "apikey": (None, API_KEY),
-            "token": (None, ""),
-            "username": (None, USERNAME),
-            "password": (None, PASSWORD)
-        }
-    )
-
-    if token_response.status_code != 200:
-        return jsonify({
-            "error": "Error HTTP al obtener token",
-            "status": token_response.status_code,
-            "respuesta": token_response.text
-        })
-
-    token_data = token_response.json()
-
-    if token_data.get("status") != 200:
-        return jsonify({
-            "error": "Error en respuesta de token",
-            "respuesta": token_data
-        })
-
-    token = token_data.get("data")
-
-    # === PASO 2: Llamar al endpoint GETDATA ===
-    data_response = requests.post(
+def obtener_activos_con_token_manual():
+    # Usar el token en una solicitud directa a getdata
+    response = requests.post(
         "https://api.service24gps.com/api/v1/getdata",
         files={
-            "token": (None, token)
+            "token": (None, TOKEN_MANUAL)
         }
     )
 
-    # Mostrar TODO lo que devuelve RedGPS
     try:
-        json_data = data_response.json()
+        json_data = response.json()
     except Exception:
-        json_data = {"error": "Respuesta no es JSON", "raw": data_response.text}
+        return {
+            "error": "La respuesta no es JSON",
+            "raw": response.text
+        }
 
-    if data_response.status_code != 200 or json_data.get("status") != 200:
-        return jsonify({
-            "error": "Error al obtener datos de unidades",
-            "status": data_response.status_code,
+    if response.status_code != 200 or json_data.get("status") != 200:
+        return {
+            "error": "Error al obtener unidades con token manual",
+            "status": response.status_code,
             "respuesta": json_data
-        })
+        }
 
-    # === PASO 3: Procesar unidades ===
-    unidades = json_data.get("data", [])
     resultado = []
-
-    for unidad in unidades:
+    for unidad in json_data.get("data", []):
         resultado.append({
             "unidad": unidad.get("name"),
             "imei": unidad.get("imei"),
@@ -85,6 +41,10 @@ def obtener_datos_activos():
         })
 
     return jsonify(resultado)
+
+if __name__ == "__main__":
+    app.run()
+
 
 if __name__ == "__main__":
     app.run()
